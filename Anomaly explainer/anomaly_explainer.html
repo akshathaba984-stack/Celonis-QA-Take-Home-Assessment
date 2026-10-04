@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OMS ↔ Analytics Anomaly Explainer</title>
+<style>
+:root{box-sizing:border-box;--bg:#f1f5f9;--card:#fff;--tx:#161b26;--mu:#667085;--bd:#e3e7ef;--ac:#2563eb;--ac2:#0ea5e9;--Critical:#dc2626;--High:#ea580c;--Medium:#d97706;--Low:#16a34a;--sh:0 1px 2px rgba(16,24,40,.06),0 4px 14px rgba(16,24,40,.05)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1118;--card:#171b25;--tx:#e9ecf3;--mu:#98a2b3;--bd:#272d3b;--sh:0 1px 2px #0006}}
+:root[data-theme="dark"]{--bg:#0e1118;--card:#171b25;--tx:#e9ecf3;--mu:#98a2b3;--bd:#272d3b;--sh:0 1px 2px #0006}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.hero{background:radial-gradient(900px 300px at 85% -20%,#22d3ee55,transparent),linear-gradient(135deg,#1e3a8a,#2563eb 60%,#0ea5e9);color:#fff;padding:calc(34px + env(safe-area-inset-top,0px)) 20px 70px}
+.in,main{max-width:1000px;margin:0 auto}
+.tag{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:#ffffff26;padding:4px 12px;border-radius:99px}
+h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:14px 0 10px;letter-spacing:-.02em}
+.hero p{margin:0 0 18px;opacity:.9;max-width:560px}
+.flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px}.flow span{background:#ffffff1f;border:1px solid #ffffff33;padding:5px 12px;border-radius:99px}.flow i{opacity:.6;font-style:normal}
+main{padding:0 16px calc(48px + env(safe-area-inset-bottom,0px));margin-top:-44px}
+.up{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:620px){.up{grid-template-columns:1fr}}
+label.drop{display:block;background:var(--card);border:2px dashed var(--bd);border-radius:16px;padding:22px;cursor:pointer;text-align:center;box-shadow:var(--sh);transition:.15s}
+label.drop:hover{border-color:var(--ac);transform:translateY(-2px)}label.drop.ok{border:2px solid var(--Low)}
+label.drop b{display:block;font-size:16px}label.drop span{color:var(--mu);font-size:13px}
+input[type=file]{display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:20px 0 12px}
+.k{background:var(--card);border-radius:14px;padding:12px 14px;box-shadow:var(--sh);border-top:4px solid var(--bd)}
+.k b{font-size:26px;display:block;line-height:1.2}.k span{color:var(--mu);font-size:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}.chips button{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:5px 14px;font:inherit;font-size:13px;cursor:pointer}.chips button:hover{border-color:var(--ac)}
+.chips button.on{background:var(--ac);color:#fff;border-color:var(--ac)}.chips input{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--bd);border-radius:99px;background:var(--card);color:var(--tx)}.dlb{font-weight:600}#dlbox{width:100%;height:160px;margin-top:6px;font:12px monospace}
+#go{font:inherit;font-weight:600;padding:11px 30px;border:0;border-radius:99px;background:var(--ac);color:#fff;cursor:pointer;box-shadow:var(--sh)}#go:disabled{background:var(--bd);color:var(--mu);cursor:not-allowed}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;color:#fff}
+.Critical{--c:var(--Critical)}.High{--c:var(--High)}.Medium{--c:var(--Medium)}.Low{--c:var(--Low)}
+.badge.Critical{background:var(--Critical)}.badge.High{background:var(--High)}.badge.Medium{background:var(--Medium)}.badge.Low{background:var(--Low)}
+#out details{background:var(--card);border-radius:14px;margin:9px 0;padding:12px 16px;box-shadow:var(--sh);border-left:5px solid var(--c,var(--bd))}
+#out[data-f="Critical"] details:not(.Critical),#out[data-f="High"] details:not(.High),#out[data-f="Medium"] details:not(.Medium),#out[data-f="Low"] details:not(.Low){display:none}
+summary{cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap}summary .r{color:var(--mu);font-size:13px;margin-left:auto}
+.ex{margin:10px 0 6px}.ai-out{margin:8px 0;font-size:14px;color:var(--ac)}
+pre{background:var(--bg);padding:10px;border-radius:10px;overflow-x:auto;font-size:12px;margin:6px 0 0}
+details.ai{background:var(--card);border-radius:14px;padding:12px 16px;margin-top:14px;box-shadow:var(--sh)}
+.ai input{font:inherit;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);margin:6px 6px 6px 0;max-width:100%}
+.ai button{font:inherit;padding:8px 16px;border:0;border-radius:8px;background:var(--ac);color:#fff;cursor:pointer}
+.err{color:var(--Critical);margin-top:12px}.note,.ai small{color:var(--mu);font-size:13px;display:block;margin-top:8px}.clean{color:var(--mu);font-size:13px}
+.sec{margin:12px 0 2px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);font-weight:700}
+table.ev{border-collapse:collapse;width:100%;font-size:13px;margin-top:4px;display:block;overflow-x:auto}table.ev th,table.ev td{text-align:left;padding:5px 12px 5px 0;border-bottom:1px solid var(--bd);white-space:nowrap}table.ev th{color:var(--mu);font-weight:600}
+.aibox{border:1px dashed var(--ac);border-radius:12px;padding:10px 14px;margin-top:14px;font-size:14px}.aitxt{color:var(--mu);margin-top:3px}.aitxt.done{color:var(--tx)}
+.ai select{font:inherit;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)}
+</style></head><body><header class="hero"><div class="in"><span class="tag">Order-to-Cash · Data quality</span><h1>OMS ↔ Analytics<br>Anomaly Explainer</h1><p>Upload the two CSVs. Get every mismatch with a severity and a plain-language explanation.</p><div class="flow"><span>① Rules find defects</span><i>→</i><span>② Guardrails fix severity floor</span><i>→</i><span>③ Plain-language explanation</span></div></div></header>
+<main>
+<div class="up">
+<label class="drop" id="d1"><input type="file" accept=".csv" id="f1"><b>1. OMS orders CSV</b><span id="n1">Click to choose file</span></label>
+<label class="drop" id="d2"><input type="file" accept=".csv" id="f2"><b>2. Analytics event log CSV</b><span id="n2">Click to choose file</span></label>
+</div>
+<div style="text-align:center;margin:18px 0 4px"><button id="go" disabled>Run analysis</button></div><div id="err" class="err"></div><div id="out"></div>
+<p class="note">Rule-based comparison against the sync contract. "Likely cause" is a guess, and "clean" only means no rule fired.</p>
+</main>
+<script>
+const RANK={Low:0,Medium:1,High:2,Critical:3};
+const P="Order Placed",C="Order Confirmed",S="Order Shipped",D="Order Delivered";
+const EXP={Confirmed:[P,C],Shipped:[P,C,S],Delivered:[P,C,S,D],Cancelled:[P,C,"Order Cancelled"],Returned:[P,C,S,"Order Returned"]};
+const HAPPY=[P,C,S,D];
+const OMS_COLS=["OrderId","OrderAmount","Currency","Status","CustomerName"],EV_COLS=["CaseId","Activity","Timestamp","Amount","Currency","CustomerName"];
+let oms=null,ev=null,FND=[];
+function parseCSV(t){const rows=[];let r=[],f="",q=false;t=t.replace(/^\uFEFF/,"");
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;else if(c==","){r.push(f);f=""}
+  else if(c=="\n"||c=="\r"){if(c=="\r"&&t[i+1]=="\n")i++;r.push(f);f="";if(r.some(x=>x!==""))rows.push(r);r=[]}
+  else f+=c}
+ if(f!==""||r.length){r.push(f);rows.push(r)}
+ const h=rows.shift().map(x=>x.trim());return rows.map(a=>Object.fromEntries(h.map((k,i)=>[k,(a[i]??"").trim()])))}
+const n=s=>String(s).trim().toLowerCase(),T=s=>Date.parse(/(Z|[+-]\d\d:?\d\d)$/i.test(s)?s:String(s).replace(" ","T")+"Z");
+const NOTES=[];
+function detect(oms,ev,now){
+ NOTES.length=0;const F=[],add=(order,rule,cat,sev,e)=>F.push({order,rule,cat,sev,e});
+ const ids=new Set(oms.map(o=>o.OrderId)),by={};
+ ev.forEach(e=>(by[e.CaseId]=by[e.CaseId]||[]).push(e));
+ Object.keys(by).filter(i=>!ids.has(i)).forEach(i=>add(i,"Orphan case","Referential integrity","High",{events:by[i].length,note:"CaseId not in OMS"}));
+ for(const o of oms){
+  const g=by[o.OrderId]||[],amt=parseFloat(o.OrderAmount);
+  if(!Number.isFinite(amt)){add(o.OrderId,"Invalid data","Data quality",o.Status==="Cart"?"Low":"High",{field:"OrderAmount",value:o.OrderAmount||"(empty)"});continue}
+  if(!EXP[o.Status]&&o.Status!=="Cart")add(o.OrderId,"Invalid data","Data quality","Medium",{field:"Status",value:o.Status||"(empty)"});
+  if(amt<0)add(o.OrderId,"Negative amount","Value correctness",o.Status==="Cart"?"Low":"High",{OrderAmount:amt,Status:o.Status});
+  if(o.Status==="Cart"){if(g.length)add(o.OrderId,"Cart synced","Completeness","High",{events:g.length});continue}
+  if(!g.length){add(o.OrderId,"Order missing in Analytics","Completeness","High",{Status:o.Status,OrderAmount:amt,Currency:o.Currency});continue}
+  const acts=g.map(e=>e.Activity);
+  [...new Set(acts)].forEach(a=>{const c=acts.filter(x=>x===a).length;if(c>1)add(o.OrderId,"Duplicate activity","Process conformance","Medium",{Activity:a,count:c})});
+  (EXP[o.Status]||[]).forEach(a=>{if(!acts.includes(a))add(o.OrderId,"Missing activity","Process conformance",(o.Status==="Delivered"||a===P||a==="Order Returned")?"High":"Medium",{Status:o.Status,missing:a,present:acts.join(" → ")})});
+  const okA=EXP[o.Status]||[];[...new Set(acts)].filter(a=>!okA.includes(a)).forEach(a=>add(o.OrderId,"Unexpected activity","Process conformance",o.Status==="Cancelled"?"High":"Medium",{Status:o.Status,unexpected:a,present:acts.join(" → ")}));
+  const seen=new Set();
+  g.forEach(e=>{const k=e.Activity+e.Timestamp;if(seen.has(k))return;seen.add(k);
+   if(!(Math.abs(parseFloat(e.Amount)-amt)<=1e-9))add(o.OrderId,"Amount mismatch","Value correctness","High",{Activity:e.Activity,OMS:amt,Analytics:parseFloat(e.Amount),diff:+(parseFloat(e.Amount)-amt).toFixed(4)});
+   if(e.Currency!==o.Currency)add(o.OrderId,"Currency mismatch","Value correctness","High",{Activity:e.Activity,OMS:o.Currency,Analytics:e.Currency})});
+  const an=(g.find(e=>n(e.CustomerName)!==n(o.CustomerName))||g[0]).CustomerName;
+  if(n(an)!==n(o.CustomerName))add(o.OrderId,"Customer name mismatch","Value correctness","Medium",{OMS:o.CustomerName,Analytics:an});
+  else if(g.some(e=>e.CustomerName!==o.CustomerName))NOTES.push(`${o.OrderId}: name differs only by case/whitespace ("${o.CustomerName}" vs "${an}"). Passes the contract after normalisation, so not a defect.`);
+  g.forEach(e=>{if(isNaN(T(e.Timestamp)))add(o.OrderId,"Invalid data","Data quality","High",{field:"Timestamp ("+e.Activity+")",value:e.Timestamp||"(empty)"})});
+  g.forEach(e=>{if(T(e.Timestamp)>now)add(o.OrderId,"Future timestamp","Temporal","High",{Activity:e.Activity,Timestamp:e.Timestamp})});
+  const seq=g.filter(e=>HAPPY.includes(e.Activity)).sort((a,b)=>HAPPY.indexOf(a.Activity)-HAPPY.indexOf(b.Activity));
+  const ooo=seq.some((e,i)=>i&&T(seq[i-1].Timestamp)>T(e.Timestamp));
+  if(ooo)add(o.OrderId,"Out-of-order events","Temporal","Medium",{happy_path_order:seq.map(e=>e.Activity+" @ "+e.Timestamp).join(" | ")});
+  const dd=g.find(e=>e.Activity===D);
+  if(o.Status==="Delivered"&&o.DeliveredDate&&dd){const d=(T(dd.Timestamp)-T(o.DeliveredDate))/60000;
+   if(Math.abs(d)>1&&ooo)F.find(f=>f.order===o.OrderId&&f.rule==="Out-of-order events").e.also_delivered_differs_from_OMS={OMS_DeliveredDate:o.DeliveredDate,Analytics_Delivered:dd.Timestamp,delta_minutes:d};
+   else if(Math.abs(d)>1)add(o.OrderId,"Timestamp shift","Temporal","Medium",{OMS_DeliveredDate:o.DeliveredDate,Analytics_Delivered:dd.Timestamp,delta_minutes:d,looks_like_tz_offset:d%30===0&&Math.abs(d)<=840})}
+ }
+ const M=new Map();
+ F.forEach(f=>{const k=f.order+"|"+f.rule,m=M.get(k);if(!m)M.set(k,f);else for(const q of["Activity","missing","unexpected","field"])if(f.e[q]!==undefined)m.e[q]+=", "+f.e[q]});
+ return [...M.values()]}
+const fmtM=m=>{const a=Math.abs(m);return Math.floor(a/60)+" h"+(a%60?" "+a%60+" min":"")};
+function info(f){const e=f.e,o=f.order;switch(f.rule){
+ case"Order missing in Analytics":return{what:`This order exists in the order system (${e.Status}, ${e.OrderAmount} ${e.Currency}) but never reached Analytics.`,why:"Reports will leave this order out, so sales and delivery numbers look lower than they really are.",cause:"The sync most likely skipped or failed on this order.",check:"Search the sync job logs for this order ID around the time it was created.",rows:[["Order found","Yes","No"],["Status",e.Status,"-"],["Amount",e.OrderAmount+" "+e.Currency,"-"]]};
+ case"Orphan case":return{what:`Analytics has ${e.events} events for ${o}, but this order does not exist in the order system.`,why:"Reports count an order that is not real, which inflates the numbers.",cause:"Probably a test or deleted order, or the wrong order ID was written during the sync.",check:"Search the order system for this ID and check if it was deleted or created in a test environment.",rows:[["Order found","No",e.events+" events"]]};
+ case"Amount mismatch":return{what:`The amount on the ${e.Activity} step is ${e.Analytics} in Analytics, but ${e.OMS} in the order system (difference ${e.diff}).`,why:"Revenue totals in reports will not match the real figures.",cause:"The amount was probably rounded or cut short while being copied (precision loss).",check:"Check how the sync converts amounts (decimal vs floating-point, rounding).",rows:[["Step",e.Activity,e.Activity],["Amount",e.OMS,e.Analytics]]};
+ case"Currency mismatch":return{what:`The ${e.Activity} step(s) say ${e.Analytics} in Analytics, but the order system says ${e.OMS}.`,why:"The same number means a different value in a different currency (5000 EUR is not 5000 USD), so revenue by currency is wrong.",cause:"The sync may be defaulting to one currency, or mapping currencies wrongly.",check:"Check the currency mapping and default in the sync job.",rows:[["Steps affected",e.Activity,e.Activity],["Currency",e.OMS,e.Analytics]]};
+ case"Timestamp shift":return{what:`The delivery time in Analytics is ${fmtM(e.delta_minutes)} ${e.delta_minutes>0?"later":"earlier"} than in the order system.`,why:"Delivery times and delays in reports will be wrong, and the delivery could land on the wrong day.",cause:e.looks_like_tz_offset?"A shift of whole hours or half-hours usually means a time zone was applied when it should not have been (a guess).":"The reason is not clear from the data.",check:"Compare the time zone settings of the sync job and the source system.",rows:[["Delivered at",e.OMS_DeliveredDate,e.Analytics_Delivered],["Difference","-",fmtM(e.delta_minutes)]]};
+ case"Out-of-order events":{const rows=String(e.happy_path_order).split(" | ").map(x=>{const p=x.split(" @ ");return[p[0],"-",p[1]]});if(e.also_delivered_differs_from_OMS)rows.push(["Delivered time (also differs)",e.also_delivered_differs_from_OMS.OMS_DeliveredDate,e.also_delivered_differs_from_OMS.Analytics_Delivered]);
+  return{what:"The steps of this order are not in time order, for example it shows as delivered before it was shipped.",why:"Process charts show impossible journeys and wrong durations.",cause:"Timestamps were probably mixed up between steps, or came from systems with different clocks (a guess).",check:"Compare each step's time with the order history in the order system.",rows}}
+ case"Duplicate activity":return{what:`The step "${e.Activity}" appears ${e.count} times for this order but should appear once.`,why:"Step counts are inflated and the order looks like it repeated a step.",cause:"The sync probably sent the same event twice (a retry or a re-run).",check:"Look for retries or re-runs on that event and make the load safe to repeat.",rows:[["Times recorded","1",String(e.count)]]};
+ case"Missing activity":return{what:`The order system says this order is ${e.Status}, but Analytics has no "${e.missing}" step for it.`,why:"The order's journey looks incomplete, so step counts and delay measures are wrong.",cause:"That event was probably dropped during the sync.",check:"See whether the event exists in the order history and why it was not sent.",rows:[["Status",e.Status,"-"],["Missing step","-",e.missing],["Steps present","-",e.present]]};
+ case"Future timestamp":return{what:`The step "${e.Activity}" is dated ${e.Timestamp}, which is in the future.`,why:"Time-based reports break, and the order looks stuck for a long time.",cause:"The year or date was probably converted wrongly (a guess).",check:"Compare this date with the order system's date for the same step.",rows:[["Step",e.Activity,e.Activity],["Timestamp","-",e.Timestamp]]};
+ case"Customer name mismatch":return{what:`The customer is "${e.OMS}" in the order system but "${e.Analytics}" in Analytics.`,why:"Customer reports may group this order under the wrong customer.",cause:"Possibly a wrong customer mapping in the sync.",check:"Check the customer ID mapping for this order.",rows:[["Customer",e.OMS,e.Analytics]]};
+ case"Negative amount":return{what:`The order amount is ${e.OrderAmount}. A real order cannot be negative.`,why:e.Status==="Cart"?"This is only a Cart (not placed yet), so reports are not affected. It is still bad source data.":"Revenue is understated or distorted.",cause:"Probably a data entry error, or a discount or refund typed into the amount field.",check:"Ask the owner of the order data to correct it.",rows:[["Amount",e.OrderAmount,"-"],["Status",e.Status,"-"]]};
+ case"Cart synced":return{what:`This is a Cart (not placed yet) but ${e.events} events were sent to Analytics.`,why:"Carts should not appear in reports.",cause:"The sync is not filtering out Carts.",check:"Check the sync filter on order status.",rows:[["Status","Cart",e.events+" events"]]};
+ case"Invalid data":return{what:`The ${e.field} value cannot be read ("${e.value}"), so checks that depend on it could not run.`,why:"Unreadable values are skipped by the other checks, so this order could look fine when it is not.",cause:"Bad data was probably written at the source or lost its format in the sync.",check:"Fix or re-export the field, then run the comparison again.",rows:[[e.field,e.value,"-"]]};
+ case"Unexpected activity":return{what:`The order system says ${e.Status}, but Analytics also has "${e.unexpected}", which does not belong to that path.`,why:"The journey in reports does not match the real status, for example a cancelled order that looks shipped.",cause:"Either the status in the order system is out of date, or an event was written to the wrong order (a guess).",check:"Compare the order history in the order system with the events in Analytics.",rows:[["Status",e.Status,"-"],["Unexpected step","-",e.unexpected],["Steps present","-",e.present]]};
+ default:return{what:o+": "+f.rule,why:"",cause:"",check:"",rows:[]}}}
+function card(f){const x=info(f),sec=(t,v)=>v?`<div class="sec">${t}</div><div>${esc(v)}</div>`:"";
+ return sec("What's wrong",x.what)+sec("Why it matters",x.why)+sec("Likely cause (a guess, not confirmed)",x.cause)+sec("What to check",x.check)+
+ `<div class="sec">Evidence</div><table class="ev"><tr><th>Field</th><th>Order system</th><th>Analytics</th></tr>${x.rows.map(r=>"<tr>"+r.map(c=>"<td>"+esc(c)+"</td>").join("")+"</tr>").join("")}</table>`}
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function run(){const err=document.getElementById("err"),out=document.getElementById("out");err.textContent="";
+ if(!oms||!ev)return;
+ const m1=OMS_COLS.filter(c=>!(c in oms[0]||{})),m2=EV_COLS.filter(c=>!(c in (ev[0]||{})));
+ if(m1.length||m2.length){out.innerHTML="";err.textContent="Missing columns. OMS file needs: "+OMS_COLS.join(", ")+". Event log needs: "+EV_COLS.join(", ")+". Did you upload them in the right boxes?";return}
+ const F=FND=detect(oms,ev,Date.now()).sort((a,b)=>RANK[b.sev]-RANK[a.sev]||a.order.localeCompare(b.order));
+ const flagged=new Set(F.map(f=>f.order)),clean=oms.map(o=>o.OrderId).filter(i=>!flagged.has(i));
+ const cnt=s=>F.filter(f=>f.sev===s).length;
+ out.innerHTML=`<div class="cards"><div class="k"><b>${oms.length}</b><span>OMS orders</span></div><div class="k"><b>${ev.length}</b><span>Analytics events</span></div>`+
+  ["Critical","High","Medium","Low"].map(s=>`<div class="k" style="border-top-color:var(--${s})"><b style="color:var(--${s})">${cnt(s)}</b><span>${s}</span></div>`).join("")+`<div class="k" style="border-top-color:var(--ac)"><b>${clean.length}</b><span>Clean orders</span></div></div><div class="chips">${["All","Critical","High","Medium","Low"].map(x=>`<button data-s="${x}"${x==="All"?' class="on"':''}>${x} ${x==="All"?F.length:cnt(x)}</button>`).join("")}<input id="q" placeholder="Search order or rule…"><span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${[["xlsx","Excel"],["csv","CSV"]].map(([x,l])=>`<button class="dlb" data-dl="${x}">⬇ ${l}</button>`).join("")}</span></div><p class="clean"><span id="dls"></span></p><textarea id="dlbox" readonly hidden></textarea>`+
+  F.map((f,i)=>`<details class="${f.sev}" id="fd${i}"><summary><span class="badge ${f.sev}">${f.sev}</span><b>${esc(f.order)}</b> ${esc(f.rule)}<span class="r">${esc(f.cat)}</span></summary>${card(f)}</details>`).join("")+
+  (NOTES.length?`<p class="clean"><b>Checked, passed after normalisation:</b><br>${NOTES.map(esc).join("<br>")}</p>`:"")+`<p class="clean"><b>Clean (no rule fired):</b> ${esc(clean.join(", "))}</p>`;
+ out.querySelectorAll(".chips button[data-s]").forEach(b=>b.onclick=()=>{out.dataset.f=b.dataset.s;out.querySelectorAll(".chips button[data-s]").forEach(x=>x.classList.toggle("on",x===b))});
+ document.getElementById("q").oninput=e=>{const v=e.target.value.toLowerCase();out.querySelectorAll("details").forEach(d=>d.hidden=!d.textContent.toLowerCase().includes(v))};
+ out.querySelectorAll(".dlb").forEach(b=>b.onclick=()=>{const k=b.dataset.dl,nm=FN()+"."+k;k==="csv"?save(nm,csvText(),"text/csv"):save(nm,xlsxBytes(),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})}
+
+function csvText(){const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+ const rows=[["ID","Severity","Order","Category","Rule","What's wrong","Why it matters","Likely cause (a guess)","What to check","Evidence (order system vs Analytics)"]];
+ FND.forEach((f,i)=>{const x=info(f);rows.push(["F"+String(i+1).padStart(2,"0"),f.sev,f.order,f.cat,f.rule,x.what,x.why,x.cause,x.check,x.rows.map(r=>r[0]+": OMS="+r[1]+" | Analytics="+r[2]).join("; ")])});
+ return "\uFEFF"+rows.map(r=>r.map(q).join(",")).join("\r\n")}
+const FN=()=>"anomaly_report_"+new Date().toISOString().slice(0,10),pad=i=>"F"+String(i+1).padStart(2,"0");
+function jsonText(){return JSON.stringify(FND.map((f,i)=>{const x=info(f);return{id:pad(i),severity:f.sev,order:f.order,category:f.cat,rule:f.rule,whats_wrong:x.what,why_it_matters:x.why,likely_cause_hypothesis:x.cause,what_to_check:x.check,evidence:f.e}}),null,2)}
+function mdText(){return "# OMS vs Analytics anomaly report\n\n"+FND.length+" findings. Likely causes are hypotheses; 'clean' only means no rule fired.\n\n| ID | Severity | Order | Rule |\n|---|---|---|---|\n"+FND.map((f,i)=>`| ${pad(i)} | ${f.sev} | ${f.order} | ${f.rule} |`).join("\n")+"\n\n"+FND.map((f,i)=>{const x=info(f);return`## ${pad(i)} [${f.sev}] ${f.order} - ${f.rule}\n- **What's wrong:** ${x.what}\n- **Why it matters:** ${x.why}\n- **Likely cause (guess):** ${x.cause}\n- **What to check:** ${x.check}\n`}).join("\n")}
+const HDR=["ID","Severity","Order","Category","Rule","What's wrong","Why it matters","Likely cause (a guess)","What to check","Evidence (order system vs Analytics)"];
+const rowsData=()=>[HDR,...FND.map((f,i)=>{const x=info(f);return[pad(i),f.sev,f.order,f.cat,f.rule,x.what,x.why,x.cause,x.check,x.rows.map(r=>r[0]+": OMS="+r[1]+" | Analytics="+r[2]).join("; ")]})];
+const crcT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+const crc=b=>{let c=-1;for(const x of b)c=crcT[(c^x)&255]^(c>>>8);return(c^-1)>>>0};
+function zip(files){const te=new TextEncoder(),parts=[],cd=[],u16=v=>[v&255,v>>8&255],u32=v=>[v&255,v>>8&255,v>>16&255,v>>>24];let off=0;
+ for(const[name,txt]of files){const nb=te.encode(name),d=te.encode(txt),c=crc(d),n=u32(d.length);
+  const h=new Uint8Array([0x50,0x4b,3,4,...u16(20),...u16(0),...u16(0),...u16(0),...u16(0x21),...u32(c),...n,...n,...u16(nb.length),...u16(0)]);
+  parts.push(h,nb,d);
+  cd.push(new Uint8Array([0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0),...u16(0),...u16(0),...u16(0x21),...u32(c),...n,...n,...u16(nb.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),nb);
+  off+=h.length+nb.length+d.length}
+ const cs=cd.reduce((a,x)=>a+x.length,0),end=new Uint8Array([0x50,0x4b,5,6,0,0,0,0,...u16(files.length),...u16(files.length),...u32(cs),...u32(off),0,0]),all=[...parts,...cd,end],out=new Uint8Array(all.reduce((a,x)=>a+x.length,0));
+ let p=0;for(const x of all){out.set(x,p);p+=x.length}return out}
+function xlsxBytes(){const M='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"',H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',RL="http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+ X=v=>String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])),
+ W=[6,10,12,22,24,60,50,50,50,60],sev={Critical:3,High:4,Medium:5,Low:6},L=i=>String.fromCharCode(65+i);
+ const sheet=H+`<worksheet ${M}><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>`+W.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")+"</cols><sheetData>"+
+  rowsData().map((r,ri)=>`<row r="${ri+1}">`+r.map((v,ci)=>`<c r="${L(ci)}${ri+1}" t="inlineStr" s="${ri?(ci===1?sev[v]||2:2):1}"><is><t xml:space="preserve">${X(v)}</t></is></c>`).join("")+"</row>").join("")+"</sheetData></worksheet>";
+ const fills=["none","gray125"].map(t=>`<fill><patternFill patternType="${t}"/></fill>`).join("")+["2563EB","DC2626","EA580C","D97706","16A34A"].map(c=>`<fill><patternFill patternType="solid"><fgColor rgb="FF${c}"/></patternFill></fill>`).join("");
+ const xf=(font,fill,al)=>`<xf numFmtId="0" fontId="${font}" fillId="${fill}" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment ${al}/></xf>`;
+ const styles=H+`<styleSheet ${M}><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts><fills count="7">${fills}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>${xf(1,2,'vertical="center" wrapText="1"')}${xf(0,0,'vertical="top" wrapText="1"')}${[3,4,5,6].map(i=>xf(1,i,'horizontal="center" vertical="top"')).join("")}</cellXfs></styleSheet>`;
+ return zip([["[Content_Types].xml",H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'],
+  ["_rels/.rels",H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RL}/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+  ["xl/workbook.xml",H+`<workbook ${M} xmlns:r="${RL}"><sheets><sheet name="Findings" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+  ["xl/_rels/workbook.xml.rels",H+`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RL}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${RL}/styles" Target="styles.xml"/></Relationships>`],
+  ["xl/worksheets/sheet1.xml",sheet],["xl/styles.xml",styles]])}
+function save(name,text,mime){const st=document.getElementById("dls"),bx=document.getElementById("dlbox");
+ try{const u=URL.createObjectURL(new Blob([text],{type:mime})),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}catch(x){}
+ if(typeof text!=="string"){st.innerHTML=`Saved <b>${name}</b>. Nothing happened? Use the CSV button, which has a Copy option.`;return}
+ st.innerHTML=`Saved <b>${name}</b>. Nothing happened? <a href="#" id="cp">Copy</a> · <a href="#" id="vw">View text</a>`;
+ document.getElementById("vw").onclick=e=>{e.preventDefault();bx.value=text;bx.hidden=!bx.hidden};
+ document.getElementById("cp").onclick=async e=>{e.preventDefault();try{await navigator.clipboard.writeText(text);st.textContent="Copied to clipboard."}catch(x){bx.value=text;bx.hidden=false;bx.select()}}}
+function wire(id,did,nid,set){document.getElementById(id).addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;
+ try{set(parseCSV(await f.text()));document.getElementById(nid).textContent=f.name;document.getElementById(did).classList.add("ok")}
+ catch(x){document.getElementById("err").textContent="Could not read "+f.name}go.disabled=!(oms&&ev);document.getElementById("out").innerHTML=""})}
+const go=document.getElementById("go");go.onclick=run;
+wire("f1","d1","n1",r=>oms=r);wire("f2","d2","n2",r=>ev=r);
+</script></body></html>
